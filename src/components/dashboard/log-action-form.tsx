@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { logEcoAction } from '@/app/actions';
@@ -27,14 +27,26 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Bird, Bike, Bus, Car, Leaf, Thermometer, UtensilsCrossed, Wind } from 'lucide-react';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '../ui/form';
 
-const formSchema = z.object({
-  dietMealType: z.string().optional(),
-  dietServings: z.coerce.number().positive().optional(),
-  travelMode: z.string().optional(),
-  travelDistance: z.coerce.number().positive().optional(),
-  energyAction: z.string().optional(),
+const dietSchema = z.object({
+  category: z.literal('diet'),
+  dietMealType: z.string({ required_error: 'Please select a meal type.' }),
+  dietServings: z.coerce.number().min(1, 'Servings must be at least 1.'),
 });
+
+const travelSchema = z.object({
+  category: z.literal('travel'),
+  travelMode: z.string({ required_error: 'Please select a mode of transport.' }),
+  travelDistance: z.coerce.number().min(0.1, 'Distance must be at least 0.1 km.'),
+});
+
+const energySchema = z.object({
+  category: z.literal('energy'),
+  energyAction: z.string({ required_error: 'Please select an energy action.' }),
+});
+
+const formSchema = z.discriminatedUnion('category', [dietSchema, travelSchema, energySchema]);
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -42,45 +54,45 @@ export default function LogActionForm({ userId }: { userId: string }) {
   const [activeTab, setActiveTab] = useState<'diet' | 'travel' | 'energy'>('diet');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<FormData>({
+
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      category: 'diet',
+      dietMealType: undefined,
+      dietServings: undefined,
+    },
   });
 
-  const onSubmit = () => {
+  const handleTabChange = (value: string) => {
+    const newCategory = value as 'diet' | 'travel' | 'energy';
+    setActiveTab(newCategory);
+    form.reset(); // Reset form state on tab change
+    form.setValue('category', newCategory);
+  };
+  
+  const onSubmit = (values: FormData) => {
     startTransition(async () => {
       let details;
-      const values = watch();
       
-      switch (activeTab) {
+      switch (values.category) {
         case 'diet':
-          if (!values.dietMealType || !values.dietServings) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please fill all fields for diet.' });
-            return;
-          }
           details = { mealType: values.dietMealType, servings: values.dietServings };
           break;
         case 'travel':
-          if (!values.travelMode || !values.travelDistance) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please fill all fields for travel.' });
-            return;
-          }
           details = { mode: values.travelMode, distance: values.travelDistance };
           break;
         case 'energy':
-           if (!values.energyAction) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please select an energy action.' });
-            return;
-          }
           details = { action: values.energyAction };
           break;
-        default:
-          return;
       }
 
-      const result = await logEcoAction(userId, activeTab, details);
+      const result = await logEcoAction(userId, values.category, details);
       if (result.success) {
         toast({ title: 'Success!', description: 'Your action has been logged.' });
-        reset();
+        form.reset();
+        form.setValue('category', activeTab);
+
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error || 'Could not log your action.' });
       }
@@ -93,74 +105,125 @@ export default function LogActionForm({ userId }: { userId: string }) {
         <CardTitle>Log a New Action</CardTitle>
         <CardDescription>Record your sustainable actions to track your impact.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Tabs defaultValue="diet" className="w-full" onValueChange={(value) => setActiveTab(value as any)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="diet">Diet</TabsTrigger>
-              <TabsTrigger value="travel">Travel</TabsTrigger>
-              <TabsTrigger value="energy">Energy</TabsTrigger>
-            </TabsList>
-            <TabsContent value="diet" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="diet-meal-type">Meal Type</Label>
-                 <Select onValueChange={(v) => setValue('dietMealType', v)} value={watch('dietMealType')}>
-                  <SelectTrigger id="diet-meal-type">
-                    <SelectValue placeholder="Select a meal type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Beef"><div className="flex items-center gap-2"><UtensilsCrossed className="h-4 w-4"/> Beef</div></SelectItem>
-                    <SelectItem value="Chicken"><div className="flex items-center gap-2"><Bird className="h-4 w-4"/> Chicken</div></SelectItem>
-                    <SelectItem value="Vegetarian"><div className="flex items-center gap-2"><Leaf className="h-4 w-4"/> Vegetarian</div></SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="diet-servings">Servings</Label>
-                <Input id="diet-servings" type="number" placeholder="e.g., 1" {...register('dietServings')} />
-              </div>
-            </TabsContent>
-            <TabsContent value="travel" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="travel-mode">Mode of Transport</Label>
-                <Select onValueChange={(v) => setValue('travelMode', v)} value={watch('travelMode')}>
-                  <SelectTrigger id="travel-mode">
-                    <SelectValue placeholder="Select a mode of transport" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Car"><div className="flex items-center gap-2"><Car className="h-4 w-4"/> Car</div></SelectItem>
-                    <SelectItem value="Bus"><div className="flex items-center gap-2"><Bus className="h-4 w-4"/> Bus</div></SelectItem>
-                    <SelectItem value="Bike"><div className="flex items-center gap-2"><Bike className="h-4 w-4"/> Bike</div></SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="travel-distance">Distance (km)</Label>
-                <Input id="travel-distance" type="number" placeholder="e.g., 10" {...register('travelDistance')} />
-              </div>
-            </TabsContent>
-            <TabsContent value="energy" className="space-y-4 pt-4">
-               <div className="space-y-2">
-                <Label htmlFor="energy-action">Action</Label>
-                <Select onValueChange={(v) => setValue('energyAction', v)} value={watch('energyAction')}>
-                  <SelectTrigger id="energy-action">
-                    <SelectValue placeholder="Select a home energy action" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Lowered Thermostat"><div className="flex items-center gap-2"><Thermometer className="h-4 w-4"/> Lowered Thermostat</div></SelectItem>
-                    <SelectItem value="Air-dried laundry"><div className="flex items-center gap-2"><Wind className="h-4 w-4"/> Air-dried laundry</div></SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </TabsContent>
-          </Tabs>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent>
+            <Tabs
+              value={activeTab}
+              className="w-full"
+              onValueChange={handleTabChange}
+            >
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="diet">Diet</TabsTrigger>
+                <TabsTrigger value="travel">Travel</TabsTrigger>
+                <TabsTrigger value="energy">Energy</TabsTrigger>
+              </TabsList>
+              <TabsContent value="diet" className="space-y-4 pt-4">
+                <FormField
+                  control={form.control}
+                  name="dietMealType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Meal Type</Label>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a meal type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Beef"><div className="flex items-center gap-2"><UtensilsCrossed className="h-4 w-4"/> Beef</div></SelectItem>
+                          <SelectItem value="Chicken"><div className="flex items-center gap-2"><Bird className="h-4 w-4"/> Chicken</div></SelectItem>
+                          <SelectItem value="Vegetarian"><div className="flex items-center gap-2"><Leaf className="h-4 w-4"/> Vegetarian</div></SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dietServings"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Servings</Label>
+                      <FormControl>
+                        <Input type="number" placeholder="e.g., 1" {...field} onChange={event => field.onChange(+event.target.value)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+              <TabsContent value="travel" className="space-y-4 pt-4">
+                <FormField
+                  control={form.control}
+                  name="travelMode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Mode of Transport</Label>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a mode of transport" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Car"><div className="flex items-center gap-2"><Car className="h-4 w-4"/> Car</div></SelectItem>
+                          <SelectItem value="Bus"><div className="flex items-center gap-2"><Bus className="h-4 w-4"/> Bus</div></SelectItem>
+                          <SelectItem value="Bike"><div className="flex items-center gap-2"><Bike className="h-4 w-4"/> Bike</div></SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="travelDistance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Distance (km)</Label>
+                      <FormControl>
+                        <Input type="number" placeholder="e.g., 10" {...field} onChange={event => field.onChange(+event.target.value)}/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+              <TabsContent value="energy" className="space-y-4 pt-4">
+                <FormField
+                  control={form.control}
+                  name="energyAction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Action</Label>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a home energy action" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           <SelectItem value="Lowered Thermostat"><div className="flex items-center gap-2"><Thermometer className="h-4 w-4"/> Lowered Thermostat</div></SelectItem>
+                           <SelectItem value="Air-dried laundry"><div className="flex items-center gap-2"><Wind className="h-4 w-4"/> Air-dried laundry</div></SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+          <CardFooter>
+            <Button className="w-full" type="submit" disabled={isPending}>
+              {isPending ? 'Logging...' : 'Log Action'}
+            </Button>
+          </CardFooter>
         </form>
-      </CardContent>
-      <CardFooter>
-        <Button className="w-full" onClick={onSubmit} disabled={isPending}>
-          {isPending ? 'Logging...' : 'Log Action'}
-        </Button>
-      </CardFooter>
+      </Form>
     </Card>
   );
 }
