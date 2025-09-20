@@ -1,21 +1,44 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import AppLayout from '@/components/app-layout';
 import Co2Card from '@/components/dashboard/co2-card';
 import GamificationCard from '@/components/dashboard/gamification-card';
 import LogActionForm from '@/components/dashboard/log-action-form';
 import RecommendationsCard from '@/components/dashboard/recommendations-card';
-import { getUser } from '@/lib/firebase/firestore';
+import { useAuth } from '@/components/auth-provider';
 import type { EcoUser } from '@/lib/types';
-import { cookies } from 'next/headers';
+import { Skeleton } from '@/components/ui/skeleton';
 
-async function getUserData(): Promise<EcoUser | null> {
-  const uid = cookies().get('user_uid')?.value;
-  if (!uid) return null;
-  return await getUser(uid);
-}
+export default function DashboardPage() {
+  const { ecoUser, loading } = useAuth();
+  const [user, setUser] = useState<EcoUser | null>(null);
 
+  useEffect(() => {
+    if (!loading && ecoUser) {
+      setUser(ecoUser);
+    }
+  }, [ecoUser, loading]);
 
-export default async function DashboardPage() {
-  const user = await getUserData();
+  if (loading || !user) {
+    return (
+      <AppLayout>
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+          <div className="flex items-center justify-between space-y-2">
+            <Skeleton className="h-10 w-64" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Skeleton className="h-96" />
+            <Skeleton className="h-96" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
