@@ -135,8 +135,8 @@ export async function logEcoAction(
     revalidatePath('/dashboard');
     console.log('--- Successfully finished logEcoAction ---');
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in logEcoAction:', error);
-    return { success: false, error: 'Failed to log action. Please try again.' };
+    return { success: false, error: `Failed to log action: ${error.message}` };
   }
 }
