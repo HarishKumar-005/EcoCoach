@@ -75,7 +75,7 @@ export async function logEcoAction(
   try {
     const co2eResult = await calculateCO2e({
       category,
-      details,
+      ...details,
     });
     console.log('CO2e calculation result:', co2eResult);
 
@@ -105,10 +105,10 @@ export async function logEcoAction(
 
     await addAction(newAction);
 
-    // Temporarily commented out user update logic for debugging
-    /*
     const user = await getUser(userId);
     if (!user) {
+      // This case should ideally not be hit if user is logged in, but as a safeguard:
+      console.error('User not found after adding action.');
       return { success: false, error: 'User not found.' };
     }
     
@@ -130,10 +130,10 @@ export async function logEcoAction(
     console.log('User update data:', userUpdateData);
 
     await updateUser(userId, userUpdateData);
-    */
+    
 
     revalidatePath('/dashboard');
-    console.log('--- Successfully finished logEcoAction (debug mode) ---');
+    console.log('--- Successfully finished logEcoAction ---');
     return { success: true };
   } catch (error) {
     console.error('Error in logEcoAction:', error);

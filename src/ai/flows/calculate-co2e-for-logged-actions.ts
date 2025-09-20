@@ -12,7 +12,11 @@ import {z} from 'genkit';
 
 const CalculateCO2eInputSchema = z.object({
   category: z.string().describe('The category of the action (e.g., diet, travel, energy).'),
-  details: z.record(z.any()).describe('The details of the action, specific to the category.'),
+  mealType: z.string().optional().describe('Type of meal for diet category.'),
+  servings: z.number().optional().describe('Number of servings for diet category.'),
+  mode: z.string().optional().describe('Mode of transport for travel category.'),
+  distance: z.number().optional().describe('Distance for travel category in km.'),
+  action: z.string().optional().describe('Specific action for energy category.'),
 });
 export type CalculateCO2eInput = z.infer<typeof CalculateCO2eInputSchema>;
 
@@ -50,27 +54,27 @@ async function getClimatiqEstimate(input: CalculateCO2eInput): Promise<number> {
   switch (input.category) {
     case 'diet':
       //Placeholder logic, since we can't call Climatiq directly
-      if (input.details.mealType === 'Beef') {
-        estimate = (input.details.servings || 1) * 3;
-      } else if (input.details.mealType === 'Chicken') {
-        estimate = (input.details.servings || 1) * 1.5;
+      if (input.mealType === 'Beef') {
+        estimate = (input.servings || 1) * 3;
+      } else if (input.mealType === 'Chicken') {
+        estimate = (input.servings || 1) * 1.5;
       } else {
-        estimate = (input.details.servings || 1) * 0.5; //Vegetarian
+        estimate = (input.servings || 1) * 0.5; //Vegetarian
       }
       break;
     case 'travel':
       //Placeholder logic, since we can't call Climatiq directly
-      if (input.details.mode === 'Car') {
-        estimate = (input.details.distance || 1) * 0.2;
-      } else if (input.details.mode === 'Bus') {
-        estimate = (input.details.distance || 1) * 0.1;
+      if (input.mode === 'Car') {
+        estimate = (input.distance || 1) * 0.2;
+      } else if (input.mode === 'Bus') {
+        estimate = (input.distance || 1) * 0.1;
       } else {
         estimate = 0; //Bike
       }
       break;
     case 'energy':
       //Placeholder logic, since we can't call Climatiq directly
-      if (input.details.action === 'Lowered Thermostat') {
+      if (input.action === 'Lowered Thermostat') {
         estimate = 1;
       } else {
         estimate = 0.5; //Air-dried laundry
