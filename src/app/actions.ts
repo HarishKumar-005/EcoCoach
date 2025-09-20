@@ -65,6 +65,9 @@ export async function logEcoAction(
   category: 'diet' | 'travel' | 'energy',
   details: ActionDetails
 ): Promise<{ success: boolean; error?: string }> {
+  console.log('--- Starting logEcoAction ---');
+  console.log('Inputs:', { userId, category, details });
+
   if (!userId) {
     return { success: false, error: 'User not authenticated.' };
   }
@@ -74,6 +77,7 @@ export async function logEcoAction(
       category,
       details,
     });
+    console.log('CO2e calculation result:', co2eResult);
 
     const co2e = co2eResult.co2e;
     const pointsGained = Math.round(co2e * 5 + 10); // Example point calculation
@@ -98,6 +102,7 @@ export async function logEcoAction(
       co2e,
       timestamp: Timestamp.now(),
     };
+    console.log('New action to be added:', newAction);
 
     await addAction(newAction);
 
@@ -115,17 +120,20 @@ export async function logEcoAction(
     if(updatedPoints > 500 && !updatedBadges.includes('Green Giant')) updatedBadges.push('Green Giant');
     if(updatedPoints > 100 && !updatedBadges.includes('Seedling Starter')) updatedBadges.push('Seedling Starter');
 
-
-    await updateUser(userId, {
+    const userUpdateData = {
       totalCO2e: updatedTotalCO2e,
       points: updatedPoints,
       badges: updatedBadges,
-    });
+    };
+    console.log('User update data:', userUpdateData);
+
+    await updateUser(userId, userUpdateData);
 
     revalidatePath('/dashboard');
+    console.log('--- Successfully finished logEcoAction ---');
     return { success: true };
   } catch (error) {
-    console.error('Error logging action:', error);
+    console.error('Error in logEcoAction:', error);
     return { success: false, error: 'Failed to log action. Please try again.' };
   }
 }
