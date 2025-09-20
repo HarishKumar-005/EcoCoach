@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { logEcoAction } from '@/app/actions';
@@ -32,13 +32,19 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '../ui/form'
 const dietSchema = z.object({
   category: z.literal('diet'),
   dietMealType: z.string({ required_error: 'Please select a meal type.' }),
-  dietServings: z.coerce.number().min(1, 'Servings must be at least 1.'),
+  dietServings: z.union([
+    z.coerce.number().min(1, 'Servings must be at least 1.'),
+    z.literal('')
+  ]).refine(val => val !== '', { message: 'Servings cannot be empty.' }),
 });
 
 const travelSchema = z.object({
   category: z.literal('travel'),
   travelMode: z.string({ required_error: 'Please select a mode of transport.' }),
-  travelDistance: z.coerce.number().min(0.1, 'Distance must be at least 0.1 km.'),
+  travelDistance: z.union([
+    z.coerce.number().min(0.1, 'Distance must be at least 0.1 km.'),
+    z.literal('')
+  ]).refine(val => val !== '', { message: 'Distance cannot be empty.' }),
 });
 
 const energySchema = z.object({
@@ -60,7 +66,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
     defaultValues: {
       category: 'diet',
       dietMealType: undefined,
-      dietServings: undefined,
+      dietServings: '',
     },
   });
 
@@ -69,6 +75,13 @@ export default function LogActionForm({ userId }: { userId: string }) {
     setActiveTab(newCategory);
     form.reset(); // Reset form state on tab change
     form.setValue('category', newCategory);
+    if(newCategory === 'diet') {
+        form.reset({ category: 'diet', dietMealType: undefined, dietServings: '' });
+    } else if (newCategory === 'travel') {
+        form.reset({ category: 'travel', travelMode: undefined, travelDistance: '' });
+    } else if (newCategory === 'energy') {
+        form.reset({ category: 'energy', energyAction: undefined });
+    }
   };
   
   const onSubmit = (values: FormData) => {
@@ -77,9 +90,11 @@ export default function LogActionForm({ userId }: { userId: string }) {
       
       switch (values.category) {
         case 'diet':
+          if (typeof values.dietServings !== 'number') return;
           details = { mealType: values.dietMealType, servings: values.dietServings };
           break;
         case 'travel':
+          if (typeof values.travelDistance !== 'number') return;
           details = { mode: values.travelMode, distance: values.travelDistance };
           break;
         case 'energy':
@@ -90,8 +105,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
       const result = await logEcoAction(userId, values.category, details);
       if (result.success) {
         toast({ title: 'Success!', description: 'Your action has been logged.' });
-        form.reset();
-        form.setValue('category', activeTab);
+        handleTabChange(activeTab);
 
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error || 'Could not log your action.' });
@@ -125,7 +139,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
                   render={({ field }) => (
                     <FormItem>
                       <Label>Meal Type</Label>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a meal type" />
@@ -148,7 +162,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
                     <FormItem>
                       <Label>Servings</Label>
                       <FormControl>
-                        <Input type="number" placeholder="e.g., 1" {...field} onChange={event => field.onChange(+event.target.value)} />
+                        <Input type="number" placeholder="e.g., 1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -162,7 +176,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
                   render={({ field }) => (
                     <FormItem>
                       <Label>Mode of Transport</Label>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a mode of transport" />
@@ -185,7 +199,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
                     <FormItem>
                       <Label>Distance (km)</Label>
                       <FormControl>
-                        <Input type="number" placeholder="e.g., 10" {...field} onChange={event => field.onChange(+event.target.value)}/>
+                        <Input type="number" placeholder="e.g., 10" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -199,7 +213,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
                   render={({ field }) => (
                     <FormItem>
                       <Label>Action</Label>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a home energy action" />
