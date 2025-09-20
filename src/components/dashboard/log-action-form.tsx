@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { logEcoAction } from '@/app/actions';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -51,6 +52,7 @@ const formSchema = z.discriminatedUnion('category', [dietSchema, travelSchema, e
 type FormData = z.infer<typeof formSchema>;
 
 export default function LogActionForm({ userId }: { userId: string }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'diet' | 'travel' | 'energy'>('diet');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -99,6 +101,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
       const result = await logEcoAction(userId, values.category, details);
       if (result.success) {
         toast({ title: 'Success!', description: 'Your action has been logged.' });
+        router.refresh();
         handleTabChange(activeTab);
 
       } else {
