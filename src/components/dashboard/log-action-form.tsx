@@ -32,19 +32,13 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '../ui/form'
 const dietSchema = z.object({
   category: z.literal('diet'),
   dietMealType: z.string({ required_error: 'Please select a meal type.' }),
-  dietServings: z.union([
-    z.coerce.number().min(1, 'Servings must be at least 1.'),
-    z.literal('')
-  ]).refine(val => val !== '', { message: 'Servings cannot be empty.' }),
+  dietServings: z.coerce.number().min(1, 'Servings must be at least 1.'),
 });
 
 const travelSchema = z.object({
   category: z.literal('travel'),
   travelMode: z.string({ required_error: 'Please select a mode of transport.' }),
-  travelDistance: z.union([
-    z.coerce.number().min(0.1, 'Distance must be at least 0.1 km.'),
-    z.literal('')
-  ]).refine(val => val !== '', { message: 'Distance cannot be empty.' }),
+  travelDistance: z.coerce.number().min(0.1, 'Distance must be at least 0.1 km.'),
 });
 
 const energySchema = z.object({
@@ -66,7 +60,7 @@ export default function LogActionForm({ userId }: { userId: string }) {
     defaultValues: {
       category: 'diet',
       dietMealType: undefined,
-      dietServings: '',
+      dietServings: 1,
     },
   });
 
@@ -76,9 +70,9 @@ export default function LogActionForm({ userId }: { userId: string }) {
     form.reset(); // Reset form state on tab change
     form.setValue('category', newCategory);
     if(newCategory === 'diet') {
-        form.reset({ category: 'diet', dietMealType: undefined, dietServings: '' });
+        form.reset({ category: 'diet', dietMealType: undefined, dietServings: 1 });
     } else if (newCategory === 'travel') {
-        form.reset({ category: 'travel', travelMode: undefined, travelDistance: '' });
+        form.reset({ category: 'travel', travelMode: undefined, travelDistance: 10 });
     } else if (newCategory === 'energy') {
         form.reset({ category: 'energy', energyAction: undefined });
     }
