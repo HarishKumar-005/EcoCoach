@@ -43,7 +43,19 @@ export async function getUser(uid: string): Promise<EcoUser | null> {
   const userDoc = await getDoc(userRef);
 
   if (userDoc.exists()) {
-    return { uid, ...userDoc.data() } as EcoUser;
+    const data = userDoc.data();
+    // Ensure all fields have default values if they are missing
+    const ecoUser: EcoUser = {
+      uid,
+      displayName: data.displayName || null,
+      email: data.email || null,
+      photoURL: data.photoURL || null,
+      createdAt: data.createdAt || Timestamp.now(),
+      totalCO2e: data.totalCO2e || 0,
+      points: data.points || 0,
+      badges: data.badges || [],
+    };
+    return ecoUser;
   }
   return null;
 }
