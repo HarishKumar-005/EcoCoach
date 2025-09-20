@@ -65,8 +65,6 @@ export async function logEcoAction(
   category: 'diet' | 'travel' | 'energy',
   details: ActionDetails
 ): Promise<{ success: boolean; error?: string }> {
-  console.log('--- Starting logEcoAction ---');
-  console.log('Inputs:', { userId, category, details });
 
   if (!userId) {
     return { success: false, error: 'User not authenticated.' };
@@ -77,8 +75,7 @@ export async function logEcoAction(
       category,
       ...details,
     });
-    console.log('CO2e calculation result:', co2eResult);
-
+    
     const co2e = co2eResult.co2e;
     
     let description = '';
@@ -101,13 +98,11 @@ export async function logEcoAction(
       co2e,
       timestamp: Timestamp.now(),
     };
-    console.log('New action to be added:', newAction);
 
     await addAction(newAction);
 
     const user = await getUser(userId);
     if (!user) {
-      // This case should ideally not be hit if user is logged in, but as a safeguard:
       console.error('User not found after adding action.');
       return { success: false, error: 'User not found.' };
     }
@@ -127,13 +122,11 @@ export async function logEcoAction(
       points: updatedPoints,
       badges: updatedBadges,
     };
-    console.log('User update data:', userUpdateData);
 
     await updateUser(userId, userUpdateData);
     
 
     revalidatePath('/dashboard');
-    console.log('--- Successfully finished logEcoAction ---');
     return { success: true };
   } catch (error: any) {
     console.error('Error in logEcoAction:', error);

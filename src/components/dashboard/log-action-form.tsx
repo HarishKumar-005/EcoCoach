@@ -86,11 +86,9 @@ export default function LogActionForm({ userId }: { userId: string }) {
       
       switch (values.category) {
         case 'diet':
-          if (typeof values.dietServings !== 'number') return;
           details = { mealType: values.dietMealType, servings: values.dietServings };
           break;
         case 'travel':
-          if (typeof values.travelDistance !== 'number') return;
           details = { mode: values.travelMode, distance: values.travelDistance };
           break;
         case 'energy':
