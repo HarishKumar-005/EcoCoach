@@ -8,7 +8,7 @@ import { calculateCO2e } from '@/ai/flows/calculate-co2e-for-logged-actions';
 import {
   receivePersonalizedRecommendations
 } from '@/ai/flows/receive-personalized-recommendations';
-import { addAction, getUser, updateUser } from '@/lib/firebase/firestore';
+import { addAction, getRecentActions, getUser, updateUser } from '@/lib/firebase/firestore';
 import type { ActionDetails, EcoAction, EcoUser } from '@/lib/types';
 import { Timestamp } from 'firebase/firestore';
 
@@ -36,14 +36,20 @@ export async function getPersonalizedRecommendations(
       return { error: 'User not found.' };
     }
 
-    // This is a simplified version of what might be passed.
-    // In a real app, you might fetch recent actions as well.
+    const recentActions = await getRecentActions(userId, 10);
+    const mappedActions = recentActions.map(action => ({
+      category: action.category,
+      description: action.description,
+      co2e: action.co2e,
+      timestamp: action.timestamp.toDate().toISOString(),
+    }));
+
     const input = {
       userId: user.uid,
       totalCO2e: user.totalCO2e,
       points: user.points,
       badges: user.badges,
-      actions: [],
+      actions: mappedActions,
     };
 
     const result = await receivePersonalizedRecommendations(input);

@@ -6,6 +6,11 @@ import {
   addDoc,
   updateDoc,
   Timestamp,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { db } from './config';
@@ -51,4 +56,14 @@ export async function updateUser(uid: string, data: Partial<Omit<EcoUser, 'uid'>
 // Action Management
 export async function addAction(action: Omit<EcoAction, 'id'>): Promise<void> {
     await addDoc(actionsCollection, action);
+}
+
+export async function getRecentActions(userId: string, count: number): Promise<EcoAction[]> {
+    const q = query(actionsCollection, where("userId", "==", userId), orderBy("timestamp", "desc"), limit(count));
+    const querySnapshot = await getDocs(q);
+    const actions: EcoAction[] = [];
+    querySnapshot.forEach((doc) => {
+        actions.push({ id: doc.id, ...doc.data() } as EcoAction);
+    });
+    return actions;
 }
