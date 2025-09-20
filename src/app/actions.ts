@@ -54,9 +54,9 @@ export async function getPersonalizedRecommendations(
 
     const result = await receivePersonalizedRecommendations(input);
     return { recommendations: result.recommendations };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting recommendations:', error);
-    return { error: 'Failed to get personalized recommendations.' };
+    return { error: `Failed to get personalized recommendations: ${error.message}` };
   }
 }
 

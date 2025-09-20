@@ -73,7 +73,7 @@ const receivePersonalizedRecommendationsFlow = ai.defineFlow(
     name: 'receivePersonalizedRecommendationsFlow',
     inputSchema: ReceivePersonalizedRecommendationsInputSchema,
     outputSchema: ReceivePersonalizedRecommendationsOutputSchema,
-    timeout: 30000,
+    timeout: 25000,
   },
   async input => {
     const {output} = await prompt(input);
