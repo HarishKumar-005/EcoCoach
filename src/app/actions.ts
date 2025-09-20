@@ -80,18 +80,17 @@ export async function logEcoAction(
     console.log('CO2e calculation result:', co2eResult);
 
     const co2e = co2eResult.co2e;
-    const pointsGained = Math.round(co2e * 5 + 10); // Example point calculation
-
+    
     let description = '';
     switch (category) {
         case 'diet':
-            description = `${details.servings} serving(s) of ${details.mealType}`;
+            description = `${(details as { servings: number }).servings} serving(s) of ${(details as { mealType: string }).mealType}`;
             break;
         case 'travel':
-            description = `${details.distance} km by ${details.mode}`;
+            description = `${(details as { distance: number }).distance} km by ${(details as { mode: string }).mode}`;
             break;
         case 'energy':
-            description = `${details.action}`;
+            description = `${(details as { action: string }).action}`;
             break;
     }
 
@@ -106,12 +105,15 @@ export async function logEcoAction(
 
     await addAction(newAction);
 
+    // Temporarily commented out user update logic for debugging
+    /*
     const user = await getUser(userId);
     if (!user) {
       return { success: false, error: 'User not found.' };
     }
     
     const updatedTotalCO2e = (user.totalCO2e || 0) + co2e;
+    const pointsGained = Math.round(co2e * 5 + 10);
     const updatedPoints = (user.points || 0) + pointsGained;
 
     // Simple badge logic
@@ -128,9 +130,10 @@ export async function logEcoAction(
     console.log('User update data:', userUpdateData);
 
     await updateUser(userId, userUpdateData);
+    */
 
     revalidatePath('/dashboard');
-    console.log('--- Successfully finished logEcoAction ---');
+    console.log('--- Successfully finished logEcoAction (debug mode) ---');
     return { success: true };
   } catch (error) {
     console.error('Error in logEcoAction:', error);
